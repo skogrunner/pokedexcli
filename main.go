@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"bufio"
 	"os"
+	"github.com/skogrunner/pokedexcli"
 	)
 
 type Config struct {

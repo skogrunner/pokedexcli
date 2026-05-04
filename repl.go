@@ -4,7 +4,23 @@ import (
 	"strings"
 	"fmt"
 	"os"
+	"net/http"
+	"io"
+	"encoding/json"
+	"errors"
 	)
+
+type Location struct {
+	Name string
+	URL  string
+}
+
+type Locations struct {
+	Count int
+	Next  string
+	Previous string
+	Results []Location
+}
 
 func getCommands() map[string]cliCommand {
 	return 	map[string]cliCommand {
@@ -35,13 +51,13 @@ func cleanInput(text string) []string {
 	return strings.Fields(strings.ToLower(strings.TrimSpace(text))) 
 }
 
-func commandExit(*Config) error {
+func commandExit(c *Config) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp(*Config) error {
+func commandHelp(c *Config) error {
 	commands := getCommands()
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage:")
@@ -54,10 +70,71 @@ func commandHelp(*Config) error {
 	return nil
 }
 
-func commandMap(*Config) error {
+func commandMap(c *Config) error {
+	url := c.next
+	if len(c.next) == 0 {
+		url = "https://pokeapi.co/api/v2/location-area/"
+	}
+
+	res, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	body, err := io.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		return err
+	}
+	if res.StatusCode > 299 {
+		return errors.New(fmt.Sprintf("Response failed with status code %d", res.StatusCode))
+	}
+
+	locations := Locations{}
+	err = json.Unmarshal(body, &locations)
+	if err != nil {
+		return err
+	}
+	c.next = locations.Next
+	c.previous = locations.Previous
+	fmt.Println("")
+	for i := range locations.Results {
+		fmt.Println(locations.Results[i].Name)
+	}
+	fmt.Println("")
 	return nil
 }
 
-func commandMapb(*Config) error {
+func commandMapb(c *Config) error {
+	url := c.previous
+	if len(c.previous) == 0 {
+		fmt.Println("you're on the first page")
+		return nil
+	}
+
+	res, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	body, err := io.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		return err
+	}
+	if res.StatusCode > 299 {
+		return errors.New(fmt.Sprintf("Response failed with status code %d", res.StatusCode))
+	}
+
+	locations := Locations{}
+	err = json.Unmarshal(body, &locations)
+	if err != nil {
+		return err
+	}
+	c.next = locations.Next
+	c.previous = locations.Previous
+	fmt.Println("")
+	for i := range locations.Results {
+		fmt.Println(locations.Results[i].Name)
+	}
+	fmt.Println("")
 	return nil
 }
