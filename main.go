@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"bufio"
 	"os"
+	"time"
 	"github.com/skogrunner/pokedexcli/internal/pokecache"
 	)
 
@@ -20,13 +21,13 @@ type cliCommand struct {
 
 
 func main() {
-	dummy()
 	scanner := bufio.NewScanner(os.Stdin)
 	commands := getCommands()
 	config := &Config {
 		previous: "",
 		next: "",
 	}
+	c := NewCache(120 * time.Second)
 
 	for {
 		fmt.Print("Pokedex > ")
