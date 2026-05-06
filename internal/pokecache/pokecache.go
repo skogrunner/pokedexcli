@@ -14,3 +14,7 @@ type Cache struct {
 	cache map[string]cacheEntry
 	mu sync.Mutex
 }
+
+func dummy() int {
+	return 0
+}

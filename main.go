@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"bufio"
 	"os"
-	"github.com/skogrunner/pokedexcli"
+	"github.com/skogrunner/pokedexcli/internal/pokecache"
 	)
 
 type Config struct {
@@ -20,6 +20,7 @@ type cliCommand struct {
 
 
 func main() {
+	dummy()
 	scanner := bufio.NewScanner(os.Stdin)
 	commands := getCommands()
 	config := &Config {
