@@ -8,6 +8,7 @@ import (
 	"io"
 	"encoding/json"
 	"errors"
+	"github.com/skogrunner/pokedexcli/internal/pokecache"
 	)
 
 type Location struct {
@@ -75,22 +76,24 @@ func commandMap(c *Config) error {
 	if len(c.next) == 0 {
 		url = "https://pokeapi.co/api/v2/location-area/"
 	}
-
-	res, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	body, err := io.ReadAll(res.Body)
-	defer res.Body.Close()
-	if err != nil {
-		return err
-	}
-	if res.StatusCode > 299 {
-		return errors.New(fmt.Sprintf("Response failed with status code %d", res.StatusCode))
-	}
-
+    body, ok :=pokecache.Get(c.cache, url)
+	if !ok {
+    	res, err := http.Get(url)
+	    if err != nil {
+		    return err
+	    }
+	    body, err := io.ReadAll(res.Body)
+	    defer res.Body.Close()
+	    if err != nil {
+		    return err
+	    }
+	    if res.StatusCode > 299 {
+		    return errors.New(fmt.Sprintf("Response failed with status code %d", res.StatusCode))
+	    }
+		pokecache.Add(c.cache, url, body)
+	} 
 	locations := Locations{}
-	err = json.Unmarshal(body, &locations)
+	err := json.Unmarshal(body, &locations)
 	if err != nil {
 		return err
 	}
@@ -111,21 +114,24 @@ func commandMapb(c *Config) error {
 		return nil
 	}
 
-	res, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	body, err := io.ReadAll(res.Body)
-	defer res.Body.Close()
-	if err != nil {
-		return err
-	}
-	if res.StatusCode > 299 {
-		return errors.New(fmt.Sprintf("Response failed with status code %d", res.StatusCode))
-	}
-
+    body, ok :=pokecache.Get(c.cache, url)
+	if !ok {
+    	res, err := http.Get(url)
+	    if err != nil {
+		    return err
+	    }
+	    body, err := io.ReadAll(res.Body)
+	    defer res.Body.Close()
+	    if err != nil {
+		    return err
+	    }
+	    if res.StatusCode > 299 {
+		    return errors.New(fmt.Sprintf("Response failed with status code %d", res.StatusCode))
+	    }
+		pokecache.Add(c.cache, url, body)
+	} 
 	locations := Locations{}
-	err = json.Unmarshal(body, &locations)
+	err := json.Unmarshal(body, &locations)
 	if err != nil {
 		return err
 	}

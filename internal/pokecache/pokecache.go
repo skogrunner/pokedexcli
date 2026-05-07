@@ -28,13 +28,25 @@ func NewCache(interval time.Duration) (Cache) {
 	return c
 }
 
-func (c Cache) Add(key string, val []byte) {
+func Add(c Cache, key string, val []byte) {
+	c.add(key, val)
+}
+
+func (c Cache) add(key string, val []byte) {
+	c.mu.Lock()
 	c.cache[key] = cacheEntry   { createdAt: time.Now(),
 		                          val: val,
                             	}
+	c.mu.Unlock()
 }
 
-func (c Cache) Get(key string) ([]byte, bool) {
+func Get(c Cache, key string) ([]byte, bool) {
+	return c.get(key)
+}
+
+func (c Cache) get(key string) ([]byte, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if entry, ok := c.cache[key]; ok {
 		return entry.val, true
 	} else {
@@ -43,10 +55,12 @@ func (c Cache) Get(key string) ([]byte, bool) {
 }
 
 func (c Cache) reapLoop(interval time.Duration) {
+	c.mu.Lock()
 	for key, entry := range c.cache {
 		if time.Now().Sub(entry.createdAt) > interval {
 			delete(c.cache, key)
 		}
 	}
+	c.mu.Unlock()
 }
 

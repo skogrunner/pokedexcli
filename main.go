@@ -9,6 +9,7 @@ import (
 	)
 
 type Config struct {
+	cache pokecache.Cache
 	previous string
 	next string
 }
@@ -24,10 +25,10 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	commands := getCommands()
 	config := &Config {
+    	cache : pokecache.NewCache(120 * time.Second),
 		previous: "",
 		next: "",
 	}
-	c := NewCache(120 * time.Second)
 
 	for {
 		fmt.Print("Pokedex > ")
