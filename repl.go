@@ -45,6 +45,11 @@ func getCommands() map[string]cliCommand {
 			description:	"Displays previous 20 location areas",
 			callback:		commandMapb,
 		},
+		"explore": {
+			name:			"explore",
+			description:	"Displays all Pokemon in a location area",
+			callback:		commandExplore,
+		},
 	}
 }
 
@@ -52,13 +57,13 @@ func cleanInput(text string) []string {
 	return strings.Fields(strings.ToLower(strings.TrimSpace(text))) 
 }
 
-func commandExit(c *Config) error {
+func commandExit(c *Config, args []string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp(c *Config) error {
+func commandHelp(c *Config, args []string) error {
 	commands := getCommands()
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage:")
@@ -71,18 +76,19 @@ func commandHelp(c *Config) error {
 	return nil
 }
 
-func commandMap(c *Config) error {
+func commandMap(c *Config, args []string) error {
 	url := c.next
 	if len(c.next) == 0 {
 		url = "https://pokeapi.co/api/v2/location-area/"
 	}
+	var body []byte
     body, ok :=pokecache.Get(c.cache, url)
 	if !ok {
     	res, err := http.Get(url)
 	    if err != nil {
 		    return err
 	    }
-	    body, err := io.ReadAll(res.Body)
+	    body, err = io.ReadAll(res.Body)
 	    defer res.Body.Close()
 	    if err != nil {
 		    return err
@@ -107,20 +113,21 @@ func commandMap(c *Config) error {
 	return nil
 }
 
-func commandMapb(c *Config) error {
+func commandMapb(c *Config, args []string) error {
 	url := c.previous
 	if len(c.previous) == 0 {
 		fmt.Println("you're on the first page")
 		return nil
 	}
 
+	var body []byte
     body, ok :=pokecache.Get(c.cache, url)
 	if !ok {
     	res, err := http.Get(url)
 	    if err != nil {
 		    return err
 	    }
-	    body, err := io.ReadAll(res.Body)
+	    body, err = io.ReadAll(res.Body)
 	    defer res.Body.Close()
 	    if err != nil {
 		    return err
@@ -142,5 +149,13 @@ func commandMapb(c *Config) error {
 		fmt.Println(locations.Results[i].Name)
 	}
 	fmt.Println("")
+	return nil
+}
+
+func commandExplore(c *Config, args []string) error {
+	if len(args) != 1 {
+		fmt.Println("Usage is: EXPLORE <location area>")
+		return nil
+	}
 	return nil
 }
