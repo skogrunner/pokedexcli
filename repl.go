@@ -103,6 +103,11 @@ func getCommands() map[string]cliCommand {
 			description:	"Display info for a Pokemon in the Pokedex",
 			callback:		commandInspect,
 		},
+		"pokedex": {
+			name:			"pokedex",
+			description:	"Display list of caught Pokemon",
+			callback:		commandPokedex,
+		},
 	}
 }
 
@@ -285,6 +290,7 @@ func commandCatch(c *Config, args []string) error {
 	if (400.0 - float64(pokemon.Base_Experience)) / 400.0 > rand.Float64() {
         fmt.Println(args[0], "was caught!")
 		c.pokedex[args[0]] = pokemon
+		fmt.Println("You may now inspect it with the inspect command.")
 	} else {
 		fmt.Println(args[0], "escaped!")
 	}
@@ -311,6 +317,14 @@ func commandInspect(c *Config, args []string) error {
 	fmt.Println("Types:")
 	for j := range len(val.Types) {
 		fmt.Println("  -", val.Types[j].Type.Name)
+	}
+	return nil
+}
+
+func commandPokedex(c *Config, args []string) error {
+	fmt.Println("Your Pokedex:")
+	for key, _ := range c.pokedex {
+        fmt.Println(" -", key)
 	}
 	return nil
 }
