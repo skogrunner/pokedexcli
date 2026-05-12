@@ -12,6 +12,7 @@ type Config struct {
 	cache pokecache.Cache
 	previous string
 	next string
+	pokedex map[string]Pokemon
 }
 
 type cliCommand struct {
@@ -28,6 +29,7 @@ func main() {
     	cache : pokecache.NewCache(120 * time.Second),
 		previous: "",
 		next: "",
+		pokedex: make(map[string]Pokemon),
 	}
 
 	for {

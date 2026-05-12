@@ -8,26 +8,46 @@ import (
 	"io"
 	"encoding/json"
 	"errors"
+	"time"
+	"math/rand"
 	"github.com/skogrunner/pokedexcli/internal/pokecache"
 	)
 
-type Location struct {
+type LocationArea struct {
 	Name string
 	URL  string
 }
 
-type Locations struct {
+type LocationAreas struct {
 	Count int
 	Next  string
 	Previous string
-	Results []Location
+	Results []LocationArea
+}
+
+type PokemonEncounter struct {
+	Name string
+	URL  string
+}
+
+type PokemonEncounters struct {
+	Pokemon PokemonEncounter
+}
+
+type PE struct {
+	Pokemon_Encounters []PokemonEncounters
+}
+
+type Pokemon struct {
+	Name string
+	Base_Experience int
 }
 
 func getCommands() map[string]cliCommand {
 	return 	map[string]cliCommand {
 		"help": {
 			name:			"help",
-			description:	"Displays a help message",
+			description:	"Display a help message",
 			callback:		commandHelp,	
 		},
 		"exit": {
@@ -37,18 +57,23 @@ func getCommands() map[string]cliCommand {
 		},
 		"map": {
 			name:			"map",
-			description:	"Displays next 20 location areas",
+			description:	"Display next 20 location areas",
 			callback:		commandMap,
 		},
 		"mapb": {
 			name:			"mapb",
-			description:	"Displays previous 20 location areas",
+			description:	"Display previous 20 location areas",
 			callback:		commandMapb,
 		},
 		"explore": {
 			name:			"explore",
-			description:	"Displays all Pokemon in a location area",
+			description:	"Display all Pokemon in a location area",
 			callback:		commandExplore,
+		},
+		"catch": {
+			name:			"catch",
+			description:	"Add Pokemon to user's Pokedex",
+			callback:		commandCatch,
 		},
 	}
 }
@@ -98,16 +123,16 @@ func commandMap(c *Config, args []string) error {
 	    }
 		pokecache.Add(c.cache, url, body)
 	} 
-	locations := Locations{}
-	err := json.Unmarshal(body, &locations)
+	locationAreas := LocationAreas{}
+	err := json.Unmarshal(body, &locationAreas)
 	if err != nil {
 		return err
 	}
-	c.next = locations.Next
-	c.previous = locations.Previous
+	c.next = locationAreas.Next
+	c.previous = locationAreas.Previous
 	fmt.Println("")
-	for i := range locations.Results {
-		fmt.Println(locations.Results[i].Name)
+	for i := range locationAreas.Results {
+		fmt.Println(locationAreas.Results[i].Name)
 	}
 	fmt.Println("")
 	return nil
@@ -137,16 +162,16 @@ func commandMapb(c *Config, args []string) error {
 	    }
 		pokecache.Add(c.cache, url, body)
 	} 
-	locations := Locations{}
-	err := json.Unmarshal(body, &locations)
+	locationAreas := LocationAreas{}
+	err := json.Unmarshal(body, &locationAreas)
 	if err != nil {
 		return err
 	}
-	c.next = locations.Next
-	c.previous = locations.Previous
+	c.next = locationAreas.Next
+	c.previous = locationAreas.Previous
 	fmt.Println("")
-	for i := range locations.Results {
-		fmt.Println(locations.Results[i].Name)
+	for i := range locationAreas.Results {
+		fmt.Println(locationAreas.Results[i].Name)
 	}
 	fmt.Println("")
 	return nil
@@ -156,6 +181,84 @@ func commandExplore(c *Config, args []string) error {
 	if len(args) != 1 {
 		fmt.Println("Usage is: EXPLORE <location area>")
 		return nil
+	}
+	url := "https://pokeapi.co/api/v2/location-area/" + args[0] + "/"
+	var body []byte
+    body, ok :=pokecache.Get(c.cache, url)
+	if !ok {
+    	res, err := http.Get(url)
+		if res.StatusCode == 404 {
+			fmt.Println("Location area", args[0], "not found")
+		}
+	    if err != nil {
+		    return err
+	    }
+	    body, err = io.ReadAll(res.Body)
+	    defer res.Body.Close()
+	    if err != nil {
+		    return err
+	    }
+	    if res.StatusCode > 299 {
+		    return errors.New(fmt.Sprintf("Response failed with status code %d", res.StatusCode))
+	    }
+		pokecache.Add(c.cache, url, body)
+	}
+	fmt.Println("Exploring", args[0]) 
+	pe := PE{}
+	err := json.Unmarshal(body, &pe)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Found Pokemon:")
+	for i := range len(pe.Pokemon_Encounters) {
+		fmt.Println(" -", pe.Pokemon_Encounters[i].Pokemon.Name)
+	}
+	return nil
+}
+
+func commandCatch(c *Config, args []string) error {
+	if len(args) != 1 {
+		fmt.Println("Usage is: Catch <Pokemon name>")
+		return nil
+	}
+	_, ok := c.pokedex[args[0]]
+	if ok {
+		fmt.Println(args[0], "has already been caught.")
+		return nil
+	}
+	url := "https://pokeapi.co/api/v2/pokemon/" + args[0] + "/"
+    var body []byte
+    body, ok =pokecache.Get(c.cache, url)
+	if !ok {
+    	res, err := http.Get(url)
+		if res.StatusCode == 404 {
+			fmt.Println("Pokemon name", args[0], "not found")
+		}
+	    if err != nil {
+		    return err
+	    }
+	    body, err = io.ReadAll(res.Body)
+	    defer res.Body.Close()
+	    if err != nil {
+		    return err
+	    }
+	    if res.StatusCode > 299 {
+		    return errors.New(fmt.Sprintf("Response failed with status code %d", res.StatusCode))
+	    }
+		pokecache.Add(c.cache, url, body)
+	}
+	pokemon := Pokemon{}
+	err := json.Unmarshal(body, &pokemon)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Throwing a Pokeball at %s...\n", args[0])
+	rand.Seed(time.Now().UnixNano())
+	if (400.0 - float64(pokemon.Base_Experience)) / 400.0 > rand.Float64() {
+        fmt.Println(args[0], "was caught!")
+		c.pokedex[args[0]] = pokemon
+	} else {
+		fmt.Println(args[0], "escaped!")
 	}
 	return nil
 }
