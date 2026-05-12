@@ -38,9 +38,32 @@ type PE struct {
 	Pokemon_Encounters []PokemonEncounters
 }
 
+type PokemonStatName struct {
+	Name   string
+	URL    string
+}
+
+type PokemonStat struct {
+	Base_Stat  int
+	Effort     int
+	Stat  PokemonStatName
+}
+
+type PokemonTypeName struct {
+	Name  string
+}
+
+type PokemonType struct {
+	Type PokemonTypeName
+}
+
 type Pokemon struct {
 	Name string
 	Base_Experience int
+	Height int
+	Weight int
+	Stats  []PokemonStat
+	Types  []PokemonType
 }
 
 func getCommands() map[string]cliCommand {
@@ -74,6 +97,11 @@ func getCommands() map[string]cliCommand {
 			name:			"catch",
 			description:	"Add Pokemon to user's Pokedex",
 			callback:		commandCatch,
+		},
+		"inspect": {
+			name:			"inspect",
+			description:	"Display info for a Pokemon in the Pokedex",
+			callback:		commandInspect,
 		},
 	}
 }
@@ -218,7 +246,7 @@ func commandExplore(c *Config, args []string) error {
 
 func commandCatch(c *Config, args []string) error {
 	if len(args) != 1 {
-		fmt.Println("Usage is: Catch <Pokemon name>")
+		fmt.Println("Usage is: CATCH <Pokemon name>")
 		return nil
 	}
 	_, ok := c.pokedex[args[0]]
@@ -259,6 +287,30 @@ func commandCatch(c *Config, args []string) error {
 		c.pokedex[args[0]] = pokemon
 	} else {
 		fmt.Println(args[0], "escaped!")
+	}
+	return nil
+}
+
+func commandInspect(c *Config, args []string) error {
+	if len(args) != 1 {
+		fmt.Println("Usage is: INSPECT <Pokemon name>")
+		return nil
+	}
+	val, ok := c.pokedex[args[0]]
+	if !ok {
+		fmt.Println(args[0], "you have not caught that pokemon")
+		return nil
+	}
+	fmt.Println("Name:", val.Name)
+	fmt.Println("Height: ", val.Height)
+	fmt.Println("Weight: ", val.Weight)
+	fmt.Println("Stats:")
+	for i := range len(val.Stats) {
+		fmt.Printf("  -%s: %d\n", val.Stats[i].Stat.Name,val.Stats[i].Base_Stat)
+	}
+	fmt.Println("Types:")
+	for j := range len(val.Types) {
+		fmt.Println("  -", val.Types[j].Type.Name)
 	}
 	return nil
 }
